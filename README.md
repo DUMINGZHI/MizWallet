@@ -5,4 +5,4 @@
 2.BTC钱包(pending)
 3.Sol钱包(pending)
 
-前端代码仓库：
+前端代码仓库：https://github.com/DUMINGZHI/MizWalletFE
