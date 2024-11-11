@@ -3,18 +3,27 @@ package com.wallet.service;
 import com.wallet.model.Wallet;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.web3j.abi.FunctionEncoder;
+import org.web3j.abi.FunctionReturnDecoder;
+import org.web3j.abi.TypeReference;
+import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.generated.Uint256;
 import org.web3j.crypto.*;
 import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.methods.response.EthEstimateGas;
-import org.web3j.protocol.core.methods.response.EthGasPrice;
-import org.web3j.protocol.core.methods.response.EthGetBalance;
-import org.web3j.protocol.core.methods.response.EthSendTransaction;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.response.*;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.utils.Convert;
 import org.web3j.utils.Numeric;
+
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.Collections;
+import java.util.List;
 
 
 @Service
@@ -23,6 +32,10 @@ public class Web3jService {
     private final Web3j web3j;
 
     private Credentials user = null;
+
+    private static final String ETH_TO_USDT_PRICE_FEED_CONTRACT = "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46";
+    private static final String INFURA_URL = "http://141.147.153.178:8545";
+    private static final BigDecimal WEI_IN_ETHER = new BigDecimal("1000000000000000000");
 
     // 从 application.properties 中读取以太坊节点的 URL
     public Web3jService(@Value("${ethereum.node.url}") String nodeUrl) {
@@ -156,5 +169,43 @@ public class Web3jService {
     // 关闭连接
     public void shutdown() throws Exception {
         web3j.shutdown();
+    }
+
+    public Wallet getWalletBalance() throws Exception {
+        Wallet wallet = new Wallet();
+        String address = user.getAddress();
+        wallet.setAddress(address);
+        EthGetBalance balance = web3j.ethGetBalance(address, org.web3j.protocol.core.DefaultBlockParameterName.LATEST).send();
+        wallet.setBalance(Convert.fromWei(balance.getBalance().toString(), Convert.Unit.ETHER)); // 转换为 ETH 单位
+        wallet.setUsdtBalance(wallet.getBalance().multiply(getEthToUsdtPrice()));
+        return wallet;
+    }
+
+    public BigDecimal getEthToUsdtPrice() throws Exception {
+        // 构造用于调用价格预言机合约的函数。
+        Function function = new Function(
+                "latestAnswer",
+                Collections.emptyList(),
+                Collections.singletonList(new TypeReference<Uint256>() {})
+        );
+
+        String encodedFunction = FunctionEncoder.encode(function);
+        EthCall response = web3j.ethCall(
+                org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(
+                        null, ETH_TO_USDT_PRICE_FEED_CONTRACT, encodedFunction
+                ),
+                DefaultBlockParameterName.LATEST
+        ).send();
+
+        if (response.hasError()) {
+            throw new RuntimeException("Error fetching ETH to USDT price: " + response.getError().getMessage());
+        }
+
+        // 使用 FunctionReturnDecoder 解析返回值
+        List<Type> decoded = FunctionReturnDecoder.decode(response.getValue(), function.getOutputParameters());
+        BigInteger price = (BigInteger) decoded.get(0).getValue();
+
+        // 假设价格精度为 8 位小数
+        return new BigDecimal(price).divide(new BigDecimal("100000000"), 8, BigDecimal.ROUND_HALF_UP);
     }
 }

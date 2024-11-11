@@ -13,11 +13,21 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 @Slf4j
-@RestController("/eth/wallet/v1")
+@RestController
 public class WalletController {
 
     @Autowired
     Web3jService ethereumService;
+
+    // 获取指定地址的余额（单位：ETH）
+    @GetMapping("/walletBalance")
+    public Wallet getWalletBalance() {
+        try {
+            return ethereumService.getWalletBalance();  // 调用服务层方法
+        } catch (Exception e) {
+            throw new RuntimeException("Error fetching balance: " + e.getMessage(), e);
+        }
+    }
 
     // 获取指定地址的余额（单位：ETH）
     @GetMapping("/balance/{address}")
@@ -64,7 +74,7 @@ public class WalletController {
     @PostMapping("/importWalletByPrivateKey")
     public String importWalletByPrivateKey(@RequestBody String privateKey) {
         try {
-            return ethereumService.importWalletByPrivateKey(privateKey);  // 调用服务层方法导入钱包
+            return ethereumService.importWalletByPrivateKey(privateKey.replaceAll("^\"|\"$", ""));  // 调用服务层方法导入钱包
         } catch (Exception e) {
             throw new RuntimeException("Error importing wallet by private key: " + e.getMessage(), e);
         }
