@@ -8,6 +8,7 @@ import com.wallet.service.Web3jService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.web3j.crypto.WalletUtils;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -26,6 +27,24 @@ public class WalletController {
             return ethereumService.getWalletBalance();  // 调用服务层方法
         } catch (Exception e) {
             throw new RuntimeException("Error fetching balance: " + e.getMessage(), e);
+        }
+    }
+
+    @GetMapping("/isValidAddress/{address}")
+    public boolean getWalletBalance(@PathVariable String address) {
+        try {
+            return WalletUtils.isValidAddress(address);
+        } catch (Exception e) {
+            throw new RuntimeException("Error check valid address: " + e.getMessage(), e);
+        }
+    }
+
+    @GetMapping("/checkGas")
+    public boolean checkGas() {
+        try {
+            return ethereumService.checkGas();
+        } catch (Exception e) {
+            throw new RuntimeException("Error check valid address: " + e.getMessage(), e);
         }
     }
 

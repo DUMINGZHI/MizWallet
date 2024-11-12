@@ -171,6 +171,16 @@ public class Web3jService {
         web3j.shutdown();
     }
 
+    // 检查是否够支付 Gas
+    public Boolean checkGas() throws Exception {
+        EthGasPrice ethGasPrice = web3j.ethGasPrice().send();
+        BigInteger gasPriceWei = ethGasPrice.getGasPrice();  // 返回 Gas Price，单位为 Wei
+        BigDecimal gasBalance = Convert.fromWei(new BigDecimal(gasPriceWei), Convert.Unit.ETHER);
+        BigDecimal walletBalance = Convert.fromWei(getWalletBalance().getBalance(), Convert.Unit.ETHER);
+
+        return walletBalance.compareTo(gasBalance) > 0;
+    }
+
     public Wallet getWalletBalance() throws Exception {
         Wallet wallet = new Wallet();
         String address = user.getAddress();
