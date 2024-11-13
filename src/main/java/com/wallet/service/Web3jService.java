@@ -34,8 +34,6 @@ public class Web3jService {
     private Credentials user = null;
 
     private static final String ETH_TO_USDT_PRICE_FEED_CONTRACT = "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46";
-    private static final String INFURA_URL = "http://141.147.153.178:8545";
-    private static final BigDecimal WEI_IN_ETHER = new BigDecimal("1000000000000000000");
 
     // 从 application.properties 中读取以太坊节点的 URL
     public Web3jService(@Value("${ethereum.node.url}") String nodeUrl) {
