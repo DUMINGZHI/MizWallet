@@ -62,7 +62,7 @@ public class Web3jService {
     }
 
     // 基于助记词生成/恢复钱包
-    public static Wallet generateOrRecoverWalletFromMnemonic(String mnemonic) {
+    public Wallet generateOrRecoverWalletFromMnemonic(String mnemonic) {
         try {
             // 生成种子
             byte[] seed = MnemonicUtils.generateSeed(mnemonic, "");
@@ -83,6 +83,8 @@ public class Web3jService {
             wallet.setPrivateKey(privateKey);
             wallet.setPublicKey(publicKey);
             wallet.setAddress(walletAddress);
+
+            user = Credentials.create(privateKey);
 
             return wallet;
 
