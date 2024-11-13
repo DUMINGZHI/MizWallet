@@ -187,7 +187,7 @@ public class Web3jService {
         wallet.setAddress(address);
         EthGetBalance balance = web3j.ethGetBalance(address, org.web3j.protocol.core.DefaultBlockParameterName.LATEST).send();
         wallet.setBalance(Convert.fromWei(balance.getBalance().toString(), Convert.Unit.ETHER)); // 转换为 ETH 单位
-        wallet.setUsdtBalance(wallet.getBalance().multiply(getEthToUsdtPrice()));
+        wallet.setUsdtBalance(wallet.getBalance().multiply(getEthToUsdtPrice()).divide(new BigDecimal(1000)));
         return wallet;
     }
 
