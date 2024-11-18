@@ -21,32 +21,51 @@ public class WalletController {
     Web3jService ethereumService;
 
     // 获取指定地址的余额（单位：ETH）
-    @GetMapping("/walletBalance")
-    public Wallet getWalletBalance() {
+    @GetMapping("/walletBalance/{wid}")
+    public Wallet getWalletBalance(@PathVariable String wid) {
         try {
-            return ethereumService.getWalletBalance();  // 调用服务层方法
+            return ethereumService.getWalletBalance(wid);  // 调用服务层方法
         } catch (Exception e) {
             throw new RuntimeException("Error fetching balance: " + e.getMessage(), e);
         }
     }
 
-    @GetMapping("/isValidAddress/{address}")
-    public boolean getWalletBalance(@PathVariable String address) {
+    @GetMapping("/checkLoginStatus/{wid}")
+    public Boolean checkLoginStatus(@PathVariable String wid) {
         try {
-            return WalletUtils.isValidAddress(address);
+            return ethereumService.checkLoginStatus(wid);  // 调用服务层方法
         } catch (Exception e) {
-            throw new RuntimeException("Error check valid address: " + e.getMessage(), e);
+            throw new RuntimeException("Error check login status: " + e.getMessage(), e);
         }
     }
 
-    @GetMapping("/checkGas")
-    public boolean checkGas() {
+    @GetMapping("/heartbeat/{wid}")
+    public Boolean heartbeat(@PathVariable String wid) {
         try {
-            return ethereumService.checkGas();
+            return ethereumService.heartbeat(wid);  // 调用服务层方法
         } catch (Exception e) {
-            throw new RuntimeException("Error check valid address: " + e.getMessage(), e);
+            throw new RuntimeException("Error check login status: " + e.getMessage(), e);
         }
     }
+
+
+//    @GetMapping("/isValidAddress/{address}")
+//    public boolean getWalletBalance(@PathVariable String address) {
+//        try {
+//            return WalletUtils.isValidAddress(address);
+//        } catch (Exception e) {
+//            throw new RuntimeException("Error check valid address: " + e.getMessage(), e);
+//        }
+//    }
+
+//    @GetMapping("/checkGas")
+//    public boolean checkGas() {
+//        try {
+//            return ethereumService.checkGas();
+//        } catch (Exception e) {
+//            throw new RuntimeException("Error check valid address: " + e.getMessage(), e);
+//        }
+//    }
 
     // 获取指定地址的余额（单位：ETH）
     @GetMapping("/balance/{address}")
@@ -135,7 +154,7 @@ public class WalletController {
     public String sendTransaction(@RequestBody TransactionRequest request) {
         try {
             BigInteger gasLimit = ethereumService.estimateGasLimit(request.getFromAddress(), request.getToAddress(), request.getValue());
-            ethereumService.sendTransaction(request.getToAddress(), request.getValue(), gasLimit);
+            ethereumService.sendTransaction(request.getXid(), request.getToAddress(), request.getValue(), gasLimit);
             return "Transaction sent successfully!";
         } catch (Exception e) {
             throw new RuntimeException("Error sending transaction: " + e.getMessage(), e);

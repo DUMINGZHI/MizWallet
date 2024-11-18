@@ -7,6 +7,8 @@ import java.math.BigInteger;
 @Data
 public class TransactionRequest {
 
+    public String xid;
+
     public BigInteger value;
 
     public String fromAddress;

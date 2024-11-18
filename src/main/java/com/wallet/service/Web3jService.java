@@ -1,6 +1,8 @@
 package com.wallet.service;
 
+import com.wallet.core.LoginManager;
 import com.wallet.model.Wallet;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -31,9 +33,12 @@ public class Web3jService {
 
     private final Web3j web3j;
 
-    private Credentials user = null;
+    //private Credentials user = null;
 
     private static final String ETH_TO_USDT_PRICE_FEED_CONTRACT = "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46";
+
+    @Autowired
+    private LoginManager loginManager;
 
     // 从 application.properties 中读取以太坊节点的 URL
     public Web3jService(@Value("${ethereum.node.url}") String nodeUrl) {
@@ -82,8 +87,6 @@ public class Web3jService {
             wallet.setPublicKey(publicKey);
             wallet.setAddress(walletAddress);
 
-            user = Credentials.create(privateKey);
-
             return wallet;
 
         } catch (Exception e) {
@@ -106,16 +109,13 @@ public class Web3jService {
 
     // 使用私钥导入钱包
     public String importWalletByPrivateKey(String privateKey) {
-        user = Credentials.create(privateKey);
-        return user.getAddress();
+        return loginManager.login(Credentials.create(privateKey));
     }
 
     // 使用助记词导入钱包
     public String importWalletByMnemonic(String mnemonic, String password) throws Exception {
-        // 使用助记词恢复钱包
         ECKeyPair keyPair = WalletUtils.loadBip39Credentials(password, mnemonic).getEcKeyPair();
-        user = Credentials.create(keyPair);
-        return user.getAddress();
+        return loginManager.login(Credentials.create(keyPair));
     }
 
     // 获取当前的 Gas Price
@@ -144,8 +144,9 @@ public class Web3jService {
     }
 
     // 执行转账
-    public EthSendTransaction sendTransaction(String toAddress, BigInteger value, BigInteger gasLimit) throws Exception {
-        Credentials credentials = user;
+    public EthSendTransaction sendTransaction(String xid, String toAddress, BigInteger value, BigInteger gasLimit) throws Exception {
+
+        Credentials credentials = loginManager.get(xid);
 
         // 获取当前 Gas Price
         BigDecimal gasPrice = getGasPrice();
@@ -172,18 +173,19 @@ public class Web3jService {
     }
 
     // 检查是否够支付 Gas
-    public Boolean checkGas() throws Exception {
-        EthGasPrice ethGasPrice = web3j.ethGasPrice().send();
-        BigInteger gasPriceWei = ethGasPrice.getGasPrice();  // 返回 Gas Price，单位为 Wei
-        BigDecimal gasBalance = Convert.fromWei(new BigDecimal(gasPriceWei), Convert.Unit.ETHER);
-        BigDecimal walletBalance = Convert.fromWei(getWalletBalance().getBalance(), Convert.Unit.ETHER);
+//    public Boolean checkGas() throws Exception {
+//        EthGasPrice ethGasPrice = web3j.ethGasPrice().send();
+//        BigInteger gasPriceWei = ethGasPrice.getGasPrice();  // 返回 Gas Price，单位为 Wei
+//        BigDecimal gasBalance = Convert.fromWei(new BigDecimal(gasPriceWei), Convert.Unit.ETHER);
+//        BigDecimal walletBalance = Convert.fromWei(getWalletBalance().getBalance(), Convert.Unit.ETHER);
+//
+//        return walletBalance.compareTo(gasBalance) > 0;
+//    }
 
-        return walletBalance.compareTo(gasBalance) > 0;
-    }
-
-    public Wallet getWalletBalance() throws Exception {
+    public Wallet getWalletBalance(String wid) throws Exception {
         Wallet wallet = new Wallet();
-        String address = user.getAddress();
+        Credentials credentials = loginManager.get(wid);
+        String address = credentials.getAddress();
         wallet.setAddress(address);
         EthGetBalance balance = web3j.ethGetBalance(address, org.web3j.protocol.core.DefaultBlockParameterName.LATEST).send();
         wallet.setBalance(Convert.fromWei(balance.getBalance().toString(), Convert.Unit.ETHER)); // 转换为 ETH 单位
@@ -217,5 +219,13 @@ public class Web3jService {
 
         // 假设价格精度为 8 位小数
         return new BigDecimal(price).divide(new BigDecimal("100000000"), 8, BigDecimal.ROUND_HALF_UP);
+    }
+
+    public Boolean checkLoginStatus(String wid) {
+        return loginManager.isLoggedIn(wid);
+    }
+
+    public Boolean heartbeat(String wid) {
+        return loginManager.updateHeartbeat(wid);
     }
 }
